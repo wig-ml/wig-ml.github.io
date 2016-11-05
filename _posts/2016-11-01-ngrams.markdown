@@ -1,0 +1,203 @@
+---
+layout: post
+mathjax: true
+title:  "n-gramy albo łańcuchy Markova"
+date:   2016-11-01
+categories: jekyll update
+---
+
+Mam nadzieję, że po przeczytaniu poniższego akapitu siedzący głęboko w probabilistyce Czytelnik nie nabierze chęci odnalezienia mnie i podjęcia próby dekapitacji.
+
+Wędrówkę zacznę od tak naiwnej metody, jak to tylko możliwe - zakładając, że pozbyliśmy się już myśli o przewidywaniu ruchów cen w sposób losowy. Słowem wstępu przypomnę definicję dyskretnego łańcuchu Markova. Intuicyjnie mówiąc, jest to ciąg zmiennych losowych, które charakteryzują się tym, że wartość $n$-tej zmiennej w ciągu zależy tylko i wyłącznie od wartości $n-1$ - szej. Innymi słowy: 
+
+1. Sprzedaż jabłek sklepikarza we wtorek zależy tylko i wyłącznie od tego, ile sprzedał w poniedziałek
+2. Liczba zleceń malarza w grudniu zależy tylko i wyłącznie od ilości zleceń w listopadzie.
+
+...i tak dalej. Ponieważ mówimy o zmiennych losowych, te zależności nie są rzecz jasna deterministyczne. Bardziej formalnie:
+<div>
+
+$$( X_n \perp X_1, X_2, ... , X_{n-2} \mid X_{n-1} )$$
+
+</div>
+Znając $$n-1$$ - szą pozycję w ciągu, nie potrzebujemy wcześniejszych, aby określić $$n$$ - tą. ($$ \perp $$ oznacza niezależność, zaś za $$ A \mid B $$ kryje się $$A$$ przy znajomości $$B$$)
+
+Rozwinę to podejście. Nie będę sugerować się tylko i wyłącznie jedną przeszłą wartością. Aby przewidzieć $$X_{n+1}$$, będę sprawdzać kilka wartości do tyłu. Innymi słowy, zakładam coś takiego:
+<div>
+$$( X_n \perp X_1, X_2, ... , X_{n-K-1} \mid X_{n-1}, ..., X_{n-K} )$$
+</div>
+
+K jest wybraną liczbą naturalną.
+
+Zaprzągnę do działania język skryptowy Python oraz jego biblioteki: pandas i numpy. Pierwsza z nich służy do manipulacji tabelami danych, druga to szeroki arsenał funkcji ułatwiających - w szczególności przyspieszających - wykonywanie obliczeń. 
+
+```python
+import numpy as np
+import pandas as pd
+import os
+```
+
+Pierwsze dwie linijki dają nam do ręki wymienione biblioteki. Ostatnia pozwala nam na bezbolesne poruszanie się w obrębie drzewka folderów systemu.
+
+Jeśli chcesz aktywnie śledzić poczynania, to przydadzą Ci się w tym miejscu ściągnięte ruchy cen akcji - zajrzyj [tutaj](/jekyll/update/2016/10/31/przygotowania/)
+
+Na początek potrzebujemy funkcji, która przekształci nam surowe ceny i informację, czy obecna cena jest wyższa, czy niższa od ceny wczoraj/dwa dni temu/tydzień temu ( zależnie od obranego $$K$$ ). Możemy to osiągnąć za pomocą biblioteki numpy i jej funkcji roll, która przesuwa wszystkie wartości w górę/dół albo lewo/prawo, w zalezności od wskazanej osi.
+
+```python
+test = np.random.randint(1,11, (10,2))
+#tworzymy sobie testową macierz, która zilustruje sedno algorytmu
+rolled = np.roll(test,shift=1, axis=0)
+#przesuwamy wartości o jeden wiersz w dół. operacja jest cykliczna, to jest ostatni znajdzie się na początku
+diff = test[1:, ] - rolled[1:, ]
+#aby nie dostać absurdalnych wyników, musimy zignorować pierwszy wiersz
+#nie ma on żadnego poprzedniego, a ponadto otrzymalibyśmy jego stosunek do ostatniego
+#nie ma to rzecz jasna żadnego sensu.
+result = diff/test[1:, ]
+#numpy automatycznie wykona tę operację element po elemencie
+#ale dzielenie jest nam do niczego niepotrzebne, a ponadto jest drogie obliczeniowo
+```
+
+W ten sposób otrzymaliśmy macierz różnic względem poprzedniej wartości w ciągu. Ale wnioskowanie na podstawie ciągłej wartości ze wszystkich liczb będzie nieco utrudnione. W tym celu zdyskretyzuję sobie otrzymane wartości - zakoduję je za pomocą zer i jedynek. Jedynka będzie oznaczać, że nastąpił wzrost, zaś widząc zero pomyślimy "tutaj wartość spadła". 
+
+```python
+result = (result > 0).astype(int)
+#wyrażenie między nawiasami zwróci nam elementy ze zbioru True, False.
+#Funkcja .astype() przekonwertuje je do pożądanego typu, w tym wypadku liczb całkowitych
+```
+
+Cała funkcja konwertująca surową cenę na przyjazne naszemu podejściu zera i jedynki wygląda tak:
+
+```python
+def process_comp(company_fname):
+    df = pd.read_csv(os.path.join(path_prices, company_fname)).set_index('<DTYYYYMMDD>')
+    #wczytywanie pliku csv, ustawiam indeksowanie na kolumnę z datami
+    #zmienna path_prices przechowuje lokację folderu z cenami, company_fname nazwę pliku z cenami konkretnej spółki
+
+    dates = df.index
+    truones = df[['<CLOSE>', '<VOL>']]
+    #postanowiłem do modelu włączyć także informację o wolumenie. 
+    #poza tym, że chcę sprawdzić, jak się tutaj zachowa, może się przydać, gdy będę bawić się sieciami bayesowskimi
+    truones.columns = ['orig_prices', 'orig_vols']
+    prices = df['<CLOSE>'].as_matrix()
+    vol = df['<VOL>'].as_matrix()
+    dataframes = []
+    add_df = dataframes.append
+    add_df(truones)
+    #oprocz wszystkich zmian, przechowuję też oryginalne ceny i wartość wolumenu
+    
+    for shift in [1,2,5,7,10,14,30]:
+	#to nie jest liczba K!
+        if shift > len(df):
+            break
+        price_diff = ((prices[shift:] - np.roll(prices, shift=shift, axis=0)[shift:]) > 0).astype(int)
+        vol_diff = ((vol[shift:] - np.roll(vol, shift=shift, axis=0)[shift:]) > 0).astype(int)
+        
+	#te dwie powyższe linijki powinny być jasne po zapoznaniu się z krótkim wprowadzeniem wyżej
+
+        data = np.vstack([price_diff, vol_diff]).T
+        data = np.vstack([np.repeat(np.array([[-1,-1]]), shift, axis=0), data])
+
+	#łańcuch zmian cen z przesunięciem K jest o K wartości krótszy.
+	#wypełniam więc tę lukę -1 w liczbie K na początku
+	#poleceniem vstack ustawiam dwie macierze o równej liczbe kolumn ( 2 ) na sobie
+        
+        add_df(pd.DataFrame(data=data, columns=['price_'+str(shift),'vol_'+str(shift)], index=dates))
+        
+    final_df = pd.concat(dataframes, axis=1)
+    return final_df
+
+for comp in os.listdir(path_prices):
+    df = process_comp(comp)
+    df.to_csv(os.path.join(path_diff, comp))
+```
+
+Ostatnia pętla zapisuje nam wszystkie przetworzone pliki csv w folderze, do którego prowadzi nas zmienna ``` path_diff ```
+
+Następnym krokiem będzie skonstruowanie macierzy przejścia. Dla ilustracji zacznę od trywialnego przypadku, gdy $$K=1$$ - poza tym musimy dobrać też liczbę $$S$$. To właśnie ją reprezentuje zmienna ```shift``` w przytoczonej wyżej funkcji. Załóżmy, że $$S=1$$. W tym wypadku, znajdując się w punkcie czasu $$T=t$$, sprawdzamy, jak zmieniła się cena akcji od momentu, gdy $$T=t-1$$. Rejestrujemy tę zmianę zgodnie z zerojedynkową konwencją, a następnie sprawdzamy, jak wygląda cena akcji w $$T=t+1$$. Zarówna dla zera, jak i jedynki tworzymy wektor $$V$$, w którym przechowujemy, ile razy dla każdego z nich nastąpił wzrost i spadek. Na końcu uczenia wystarczy oba wektory znormalizować, by sumowały się do jedynki. W rezultacie dostajemy macierz przejścia $$2 \times 2$$ postaci:
+<div>
+\begin{pmatrix}
+p_{00} & p_{01} \\
+p_{10} & p_{11} \\
+\end{pmatrix}
+</div>
+gdzie $$p_{01}$$ oznacza prawdopodobieństwo, że jeśli cen spadła, to wzrośnie.
+
+Dla $$K = 4$$, $$S = 3$$ procedura wygląda trochę bardziej skomplikowanie. 
+
+Niech $$X(T)$$ oznacza cenę akcji w czasie $$T$$. Musimy sprawdzić, jak zmieniała się cena w okresach $$\Delta T = S$$. Zacznijmy od $$T=t_0$$. Sprawdzamy po kolei $$X(T=t_0) - X(T=t_0-S)$$, $$X(T=t_0-S) - X(T=t_0-2S)$$ i tak aż do $$X(T=t_0-(K-1)S) - X(T=t_0-KS)$$. Dyskretyzując te różnice, otrzymamy ciąg liczb złożony z zer i jedynek. Przyjmę konwencję, że pierwsza liczba od lewej oznacza najwcześniejszą zmianę, odwrotnie niż kolejność powyższych równań. Musimy też zapisywać, jak dla danej sekwencji zer i jedynek ( wzrostów i spadków ) zmieniła się cena akcji $$\Delta T = L$$ dni później. Dla każdej sekwencji tworzę więc dwuwymiarowy wektor $$V$$, w którym przechowuję, ile razy dla danej sekwencji nastąpił spadek, a ile razy nastąpił wzrost. W szczególności, jeśli $$X(T=t+L) - X(T=t_0) > 0$$, to $$V(1) \mathrel{+=} 1$$ i $$V(0) \mathrel{+=} 1$$ w przeciwnym wypadku. Efekt końcowy nie będzie przypominać macierzy kwadratowej, będzie to raczej macierz $$2^K \times 2$$.
+
+<div>
+\begin{pmatrix}
+p_{0001} & p_{0000} \\
+p_{0011} & p_{0010} \\
+\vdots & \vdots \\
+p_{1111} & p_{1110} \\
+\end{pmatrix}
+</div>
+
+Pierwszy wiersz określa nam prawdopodobieństwa wzrostu i spadku, jeśli wartość spółki cały czas spada.
+
+W praktyce nie będę przechowywać danych w macierzy, a w słowniku, gdzie kluczami będą tekstowe sekwencje zer i jedynek, a wartościami wektory dwuwymiarowe ( wiersze powyższej macierzy ). W ten sposób zaoszczędzę kosztownego porównywania ostatniej sekwencji z każdym wierszem macierzy.
+
+Widać teraz, czemu postanowiłem nazwać metodę n-gramami. Przypomina ona bowiem prostą metodę przewidywania następnego słowa, stosowaną w erze narodzin lingwistyki obliczeniowej, gdy o sieciach rekurencyjnych nikt jeszcze nie myślał - [Klik](https://pl.wikipedia.org/wiki/N-gram).
+
+Powyższa operacja dla pojedynczej spółki w Pythonie może zostać zapisana tak:
+
+```python
+from bisect import bisect
+
+def input_from_comp(comp, start_date, end_date, path_diffs, shift, reach):
+#wyjasnienia wymaga chyba tylko zmienna reach. otóż jest ona tym samym, co obrana 
+#akapit wyżej zmienna L, czyli określa, na ile dni wprzód sprawdzamy przewidywaną cenę
+	df = pd.read_csv(os.path.join(path_diffs,comp)).set_index('<DTYYYYMMDD>')
+	if 'price_' + str(shift) not in df.columns:
+		continue
+            
+	dates = list(df.index)
+	start = max(shift, bisect(dates,int(start_date)))        
+	end = max(shift, bisect(dates,int(end_date)))
+#pierwsze S miejsc kolumnie odpowiadającej przesunięciu S okupują -1. Musimy więc 
+#upewnić się, że w procesie tworzenia macierzy prawdopodobieństw nasz algorytm 
+#ich nie zobaczy. w szczególności może okazać się, że zera i jedynki zaczynają 
+#się dopiero po wyznaczonej przez nas dacie końca wtedy taką spółkę w procesie
+#uczenia należy pominąć
+
+#funkcja bisect za pomocą przeszukiwania binarnego wyznacza nam miejsce, w którym 
+#należy umieścić element ( drugi argument ) w liście ( pierwszy argument ), aby 
+#zachować porządek 
+            
+	p = df['price_' + str(shift)].as_matrix()[start:end]
+	values = df['orig_prices'].as_matrix()[start:end]
+#zachowujemy wszystkie ceny w oryginalnej kolejności
+	for run in range(shift):
+#jeśli shift = 2, to możemy przejść przez kolumnę na dwa rozłączne sposoby, zaczynając z dwóch różnych miejsc
+   		things = p[run::shift]
+#niech N będzie długością tablicy 'things'
+		for slice_step in range(len(things) - length - reach):
+#kroimy nasz łańcuch na N - K - L kawałków, będziemy skakać od jednego do drugiego
+			sl = things[slice_step:slice_step+length]
+			x = values[(slice_step+length)*shift]
+			y = values[(slice_step+length)*shift+reach]
+#zachowaliśmy wcześniej ceny w oryginalnej kolejności - obecna cena znajduje się na 
+#S*(r+K) pozycji r to liczba powtórzeń pętli, które już miały miejsce ( dla pierwszej
+# iteracji równa zero ) cena, którą chcemy przewidzieć znajduje się rzecz jasna 
+#na S*(r+K) + L pozycji
+			result = int((y-x) > 0)
+			price_dict[ ''.join(list(map(str,sl))) ][result] += 1
+#map(str,sl) pozwala nam na zastosowanie funkcji str, zmieniającej argument 
+#na ciąg znaków dla każdego elementu tablicy sl bez pętli
+
+```
+
+
+Powyższe to tylko zmodyfikowany dla czytelności fragment klasy napisanej w celu stworzenia i testowania odpowiedniej macierzy. Jej pełen kod znajduje się [tutaj](https://github.com/wig-ml/blog_source/blob/master/markov%20chains/transition_matrices.py).
+
+```python
+SMC = SemiMarkovChain(shift=1, length=1, reach=1)
+SMC.build(end_date='20141230')
+SMC.test_matrix()
+```
+
+Jak widać, dla przewidywań z dnia na dzień, nie zwracając uwagi na wcześniejsze ruchy akcji, otrzymujemy dokładność przewidywań w wysokości 60%. Nie jest to imponujący wynik, ale mimo wszystko przebija najnaiwniejszą z metod, czyli strzelanie bez żadnych informacji.
+
+W następnym poście przeprowadzę analizę wyników. Sprawdzę, jak zmienia się dokładność, gdy zmniejszamy rozmiar zbioru treningowego oraz co się dzieje, gdy modyfikujemy parametry - długość łancucha, jego skok oraz dla ilu dni wstecz jesteśmy w stanie osiągnąć najwyższe wyniki.
+

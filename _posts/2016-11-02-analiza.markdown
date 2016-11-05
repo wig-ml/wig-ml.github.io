@@ -1,0 +1,103 @@
+---
+layout: post
+mathjax: true
+title:  "Analiza łańcuchów Markova"
+date:   2016-11-02
+categories: jekyll update
+---
+
+W poprzednim poście opisałem stworzenie prostego klasyfikatora bazującego na łańcuchach Markova. Teraz postaram się przeanalizować jego dokładność w funkcji jego parametrów - sprawdzę, co się dzieje, gdy zwiększamy skok, gdy żądamy większej długości sekwencji zer i jedynek. Wreszcie postaram się sprawdzić, jak zachowuje się klasyfikator w zależności od tego, jak duży jest zbiór danych, przeznaczony do treningu. Na sam koniec pokuszę się o połączenie kilku modeli.
+
+Nie może się jednak obyć bez wprowadzenia dwóch dodatkowych metryk - precyzji i czułości. Sama dokładność przewidywań nie wystarcza, bowiem możemy mieć klasyfikator osiągający dokładność, powiedzmy, 70%, ale co z tego, skoro akurat 70% wszystkich wycinków kończy się wzrostem ceny. Wystarczy wtedy zbudować klasyfikator, który zawsze wskazuje wzrost. Żaden wyczyn, żadne wyzwanie, żadna atrakcja. Narzędzie bez stylu i klasy. 
+
+Czym jest zatem precyzja? Jest to miara, która wskazuje nam, jak duży procent wszystkich obiektów wskaznych przez algorytm jako 'pozytywne' ( określenie rzecz jasna arbitralne, przyjęło się, że są to obiekty zakodowane przez klasę 1. W naszym wypadku będzie to wzrost ) stanowią istotnie 'pozytywne', tak zwane 'true positives'. Jeśli $X(y)$ to klasa elementu X, $y_{przew}$ to przewidziana klasa, $y_{praw}$ prawdziwa, to precyzję zapisujemy: 
+<div>
+$$\frac{ \# X(y_{przew} = 1 \cap y_{praw} = 1 ) }{\# X(y_{przew} = 1 )  }$$
+</div>
+
+Czułość zaś mówi nam o tym, ile prawdziwie pozytywnych obiektów udało nam się wydobyć ze wszystkich oznaczonych klasą 1. Zapisujemy to w ten sposób:
+<div>
+$$\frac{ \# X(y_{przew} = 1 \cap y_{praw} = 1 ) }{\# X(y_{praw} = 1  ) }$$
+</div>
+
+Aby dodać obsługę precyzji i czułości, wystarczy nieco zmodyfikować metodę ```test_matrix``` zgodnie z poniższymi wskazówkami. 
+
+```python
+scores = np.array([[0,0],[0,0]])
+
+#rozne rzeczy
+
+for run in range(self.shift):
+	#...
+	for slice_step in ...
+		#wewnetrzna petla
+		scores[true_res, pred_res] += 1
+
+return {'accuracy': (scores[0,0] + scores[1,1])/np.sum(scores), 
+                'precision': scores[1,1]/(scores[0,1]+scores[1,1]) if scores[0,1] + scores[1,1] > 0 else 0, 
+                'recall': scores[1,1]/(scores[1,0]+scores[1,1]) if scores[1,0] + scores[1,1] > 0 else 0
+                , 'scores':scores}
+
+```
+
+Wyrażenie warunkowe w zwracanym słowniku ( ```if``` ) służy zabezpieczeniu przed sytuacją, gdy nasz algorytm okazuje się być 'bez stylu i klasy', jak pisałem wyżej.
+
+Teraz można sprawdzić precyzję i czułość wersji z naiwnymi parametrami
+
+```python
+smc = SMC(shift=1, reach=1, length=1)
+smc.build()
+smc.test_matrix()
+```
+
+Wynik cudowny. Precyzja zero, czułość zero. Czyli dalej strzelamy, jedynie poświęciliśmy troszkę więcej czasu na celowanie. Ponadto, nic byśmy nie zarobili, bowiem algorytm cały czas wskazywałby na konieczność sprzedaży spółki, nigdy nie zasugerowałby kupna. Może historycznie bywało lepiej? Sprawdźmy, co się działo, gdy przespacerujemy się od roku 1991 do 2016, ucząc na roku $r$ i testując na $r+1$. 
+
+Legenda: czerń - dokładność, błękit - precyzja, czerwień - czułość.
+
+<div class="imgcap">
+<img src="/assets/markov-anal/plotyearly.png">
+</div>
+
+Wygląda wyśmienicie - z tym, że nie. Zastanawiące jest podobieństwo między wykresami w jednej kolumnie. A co się stanie, gdy będziemy trenować na wszystkich latach poprzedzających $r+1$?
+
+<div class="imgcap">
+<img src="/assets/markov-anal/plotcum.png">
+</div>
+
+O ile paskudny wynik dla prostych kombinacji był w zasadzie przewidywalny, tak nie mogę tego z czystym sumieniem powiedzieć o dłuższym łańcuchu. Sądziłem, że gdy będziemy mieli więcej różnych kombinacji, to znajdą się wśród nich i takie, dla których prawdopodobieństwo otrzymania w następnym kroku wzrostu będzie większe niż 1/2. Tymczasem takie występowały tylko historycznie. Możliwe, że za sprawę odpowiedzialny jest szum wprowadzany przez dużą ilość danych historycznych - precyzja ginie szybciej, gdy punktem odniesienia są wszystkie ruchy cen od powstania giełdy.
+
+
+Sprawdźmy jak będzie się miała sytuacja dla losowo wygenerowanych parametrów:
+
+```python
+trials = 9
+res_dicts = {}
+probs_dicts = {}
+parameters = []
+
+while trials:
+    trials -= 1
+    print('trials left', trials)
+    params = (np.random.randint(1,11), np.random.choice([1,2,5,7,10,14]))
+    while params in parameters:
+        params = (np.random.randint(1,11), np.random.choice([1,2,5,7,10,14]))
+    parameters.append(params)
+    
+    smc = SMC(reach=7, shift=params[1], length=params[0])
+    smc.build(end_date='20141230', test_end='20151230')
+    res_dicts['L' + str(params[0]) + 'S' + str(params[1])] = smc.test_matrix()
+    probs_dicts['L' + str(params[0]) + 'S' + str(params[1])] = smc.get_dict()
+```
+
+Dostaniesz inne wyniki niż ja - próbowałem jednakowoż kilku różnych wariantów i za każdym razem udało mi się otrzymać algorytmy, które osiągały niezerową precyzję i czułość - niewysokie, ale niezerowe. Skoro udało mi się zmusić jakiś model do sugerowania od czasu do czasu kupna, to nadszedł czas na test rzeczywisty - przemieszczając się od tygodnia do tygodnia, sprawdzę, ile pieniędzy można zarobić korzystając z kilku najlepszych algorytmów.
+
+Kod źródłowy, za pomocą którego sprawdziłem, jak sprawdza się ta strategia znajduje się [tutaj](https://github.com/wig-ml/blog_source/blob/master/markov%20chains/portfolio_manager.py). Rezultat to 10% zysku w ciągu 10 miesięcy, lista 'ale' jest jednak nietrywialna:
+
+1. Testując strategię, zignorowałem koszty transakcyjne - ich implementacja nie jest niczym trudnym, ale chciałbym przejść już do bardziej zaawansowanej metody.
+2. Jeśli zasięg (reach) był równy 7, to oznaczało to, że sprawdzamy cenę na 7 pozycji do przodu, nie 7 dni do przodu. Subtelna różnica.
+3. Zysk względem początkowej kwoty pojawił się właściwie dopiero w dziewiątym miesięciu, co oznacza, że przez tak długi okres musiałbym mieć mocną wiarę w ostateczną skuteczność strategii, pomimo porażek. Śmiem wątplić, czy byłoby to wykonalne.
+
+Możliwe, że jeszcze wrócę do pomysłu n-gramów, ale tymczasem chciałbym skupić się na innym podejściu - uczeniu ze wzmocnieniem.
+
+
+
