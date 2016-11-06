@@ -89,15 +89,41 @@ while trials:
     probs_dicts['L' + str(params[0]) + 'S' + str(params[1])] = smc.get_dict()
 ```
 
+<div class="imgcap">
+<img src="/assets/markov-anal/diff.png">
+
+
+Dziewięć losowych klasyfikatorów. Kolorystyczna konwencja oznaczeń bez zmian.
+</div>
+
+
 Dostaniesz inne wyniki niż ja - próbowałem jednakowoż kilku różnych wariantów i za każdym razem udało mi się otrzymać algorytmy, które osiągały niezerową precyzję i czułość - niewysokie, ale niezerowe. Skoro udało mi się zmusić jakiś model do sugerowania od czasu do czasu kupna, to nadszedł czas na test rzeczywisty - przemieszczając się od tygodnia do tygodnia, sprawdzę, ile pieniędzy można zarobić korzystając z kilku najlepszych algorytmów.
 
-Kod źródłowy, za pomocą którego sprawdziłem, jak sprawdza się ta strategia znajduje się [tutaj](https://github.com/wig-ml/blog_source/blob/master/markov%20chains/portfolio_manager.py). Rezultat to 10% zysku w ciągu 10 miesięcy, lista 'ale' jest jednak nietrywialna:
+Kod źródłowy, za pomocą którego sprawdziłem, jak sprawdza się ta strategia znajduje się [tutaj](https://github.com/wig-ml/blog_source/blob/master/markov%20chains/portfolio_manager.py). 
+
+Kilka zdań o metodzie. Na początku wytrenowałem dziewięć losowych klasyfikatorów - macierz prawdopodobieństw stworzyłem na przedziale od stycznia roku 2009 do stycznia roku 2015. Nie miałem wszakże informacji o precyzji, czułości i dokładności. Otrzymałem je testując każdy klasyfikator testując na danych z roku 2015. W ten sposób otrzymałem też tablę, mówiącą mi, ile razy padły prawdziwe i fałszywe wzrosty i spadki. Spośród pierwszej dziewiątki wybrałem klasyfikatory, które miały dokładność przewidywań wyższą niż 50% oraz niezerową precyzję. Przeszły one do ostatniej fazy testów. 
+
+Dla wybranej daty $D$ sprawdzałem, jakie przyszłe losy każdej spółki przewiduje każdy klasyfikator. Potem, dla każdego z nich zapisywałem te spółki, które mają największą szansę wzrostu i spadku - posiłkowałem się tutaj twierdzeniem Bayesa. Niech $W, S, H_w, H_s$ oznaczają kolejno rzeczywisty wzrost, spadek, przewidywany wzrost i przewidywany spadek. 
+
+Załóżmy teraz, że klasyfikator twierdzi, że PZU wzrośnie z prawdopodobieństwem 60%. Czy mogę mu zaufać? Nie do końca. Muszę jeszcze wiedzieć, ile spośród jego dotychczasowych przewidywań wzrostu istotnie skończyło się wzrostem. A dokładnie to mówi mi czułość! Mam zatem:
+<div>
+$$\mathbb{P}(W \mid H_w) = \frac{\mathbb{P}(H_w \mid W)\mathbb{P}(W)}{\mathbb{P}(H_w \mid W)\mathbb{P}(W) + \mathbb{P}(H_w \mid S)\mathbb{P}(S)}$$
+</div>
+
+gdzie $\mathbb{P}(H_w \mid W)$ to właśnie moja czułość. $\mathbb{P}(H_w \mid S)$ zaś to 1 - _odpowiednik czułości dla spadków_.
+
+Czemu czułość? Wiemy, że $$\frac{ \# X(y_{przew} = 1 \cap y_{praw} = 1 ) }{\# X(y_{praw} = 1  ) } = \frac{ \frac{ \# X(y_{przew} = 1 \cap y_{praw} = 1 ) }{\# wszystkie oceny  } }{ \frac{\#X(y_{praw} = 1}{\# wszystkie oceny} } = \frac{\mathbb{P}(H_w \cap W)}{\mathbb{P}( W ) } = \mathbb{P}(H_w \mid W)$$
+
+Dla każdego klasyfikatora wybieram teraz spółki o największym prawdopodobieństwie wyżej - dla przewidzianych wzrostów i najmniejszym dla spadków. Wrzucam je do wspólnej listy, zachowując informację o liczbie wystąpień. Następnie z tej wspólnej listy wybieram te spółki, które pojawiły się najwięcej razy. Ich akcje kupuję bądź sprzedaję, w zależności od tego, o której liście mowa.
+
+Rezultat to 10% zysku w ciągu 10 miesięcy, lista 'ale' jest jednak nietrywialna:
 
 1. Testując strategię, zignorowałem koszty transakcyjne - ich implementacja nie jest niczym trudnym, ale chciałbym przejść już do bardziej zaawansowanej metody.
 2. Jeśli zasięg (reach) był równy 7, to oznaczało to, że sprawdzamy cenę na 7 pozycji do przodu, nie 7 dni do przodu. Subtelna różnica.
 3. Zysk względem początkowej kwoty pojawił się właściwie dopiero w dziewiątym miesięciu, co oznacza, że przez tak długi okres musiałbym mieć mocną wiarę w ostateczną skuteczność strategii, pomimo porażek. Śmiem wątplić, czy byłoby to wykonalne.
+4. Strategia była przetestowana tylko na danych z roku 2016
 
-Możliwe, że jeszcze wrócę do pomysłu n-gramów, ale tymczasem chciałbym skupić się na innym podejściu - uczeniu ze wzmocnieniem.
+Możliwe, że jeszcze wrócę do pomysłu n-gramów, ale tymczasem chciałbym skupić się na innym podejściu - sieciach neuronowych i uczeniu ze wzmocnieniem.
 
 
 
