@@ -93,9 +93,9 @@ with tf.Session() as sess:
 
 Na szczęście moduł ```optimizer``` pozbawia nas konieczności pisania propagacji wstecznej od zera. Nie byłby to problem w tym wypadku, natomiast w przypadku bardziej skomplikowanych i subtelnych konstrukcji czekałyby mnie pewno godziny debugowania, aby zlokalizować ten mały detal, który wszystko psuje :) Jeśli Czytelnik ma ochotę obejrzeć implementację od zera - za pomocą samego pythona wspomaganego numpy - to zapraszam [tutaj](http://cs231n.github.io/neural-networks-case-study/)
 
-Przypomnijmy, że podajemy jej zwykły wektor, jednowymiarowy, nie dwuwymiarową macierz, na której widoczne jak na dłoni są relacje przestrzenne, krawędzie, gradienty i tak dalej. W szczególności, dwa punkty leżące obok siebie w macierzy, w reprezentacji wektorowej mogą być oddalone o kilkaset pozycji! Rozważmy teraz pierwszą jednostkę z warstwy ukrytej. 
+Przypomnijmy, że podajemy jej zwykły wektor, jednowymiarowy, nie dwuwymiarową macierz, na której widoczne jak na dłoni są relacje przestrzenne, krawędzie, gradienty i tak dalej. W szczególności, dwa punkty leżące obok siebie w macierzy, w reprezentacji wektorowej mogą być oddalone o kilkaset pozycji! Rozważmy teraz pierwszą jednostkę z warstwy ukrytej, choć takie same rozważania można przeprowadzić dla dowolnej.
 
-Niech $x_{i}$ będzie $i$-tą pozycją z wektora wejściowego, a $w_{i}$ wagą, z jaką podaje się go do pierwszej jednostki, $a_1$. Mamy wszakże $a_1 = \sum w_i x_i $, czyli kombinację liniową, niepodatną na zmianę kolejności dodawania! Możemy zatem dowolnie permutować elementy wejściowego wektora, a dopóki dysponujemy odpowiednim narzędziem optymalizacyjnym, powinniśmy otrzymać jakiś sensowny rezultat, pod warunkiem spełnienia twierdzenia o uniwersalnej aproksymacji. Analogiczną rzecz można powiedzieć o każdej jednostce, rzecz jasna. 
+Niech $x_{i}$ będzie $i$-tą pozycją z wektora wejściowego, a $w_{i}$ wagą, z jaką podaje się go do pierwszej jednostki, $a_1$. Mamy wszakże $a_1 = \sum w_i x_i $, czyli kombinację liniową, niepodatną na zmianę kolejności dodawania! Możemy zatem dowolnie permutować elementy wejściowego wektora, a dopóki dysponujemy odpowiednim narzędziem optymalizacyjnym, powinniśmy otrzymać jakiś sensowny rezultat, pod warunkiem spełnienia twierdzenia o uniwersalnej aproksymacji. Warunek nakładany przez to twierdzenie powoduje, że możemy wykrywać nieliniowości. W szczególności, jest możliwe nauczenie sieci liczenie odchylenia standardowego - zapraszam [tutaj](https://github.com/wig-ml/blog_source/blob/master/simple%20neural%20network/std.py) 
 
 Aby na własne oczy przekonać się o tym, jak pomocne bywa "wkładanie własności ręką", Czytelnik może zajrzeć na [plac zabaw](http://playground.tensorflow.org/). Najlepszym chyba przykładem będzie wybranie spirali i sprawdzenie, jak sprawuje się sieć z sinusoidalnymi własnościami i bez nich. Choć w tym wypadku łatwo jest dobrać prawidłowe i pomocne własności, bo możemy sobie narysować zbiór danych, w ogólności nie jest to takie proste i należy uważać na [niedopasowanie i przeuczenie](https://en.wikipedia.org/wiki/Bias%E2%80%93variance_tradeoff)
 
@@ -111,7 +111,7 @@ gdzie $j$ jest prawdziwą klasą - zauważmy, że dla całej reszty $\vec{v_{pra
 $$\log x = -0.693 \implies x = 1/2$$
 </div>
 
-Własnie tak, nasza sieć nie sprawdza się dużo lepiej niż strzelanie. Kilka wykresów:
+Własnie tak, nasza sieć nie sprawdza się dużo lepiej niż strzelanie. W testowym jest jeszcze gorzej. Kilka wykresów:
 
 <div class="imgcap">
 <img src="/assets/neural-net/firststats.png">
@@ -125,9 +125,9 @@ tf.Variable(tf.random_normal([input_size, layer1], stddev=1/np.sqrt(input_size))
 
 Chciałem w ten sposób zapobiec eksplozji wag i utrzymać je w pobliżu zera - choć przy funkcji aktywacji ReLU zamiast sigmoidalnych jest to mniej prawdopodobne. Ta pierwsza ma bowiem pochodną równą jeden dla każdego dodatniego wejścia, zaś gradient drugiej spada do zera dla dużych co do modułu argumentów. Jest to niebezpieczne, ponieważ w tej sytuacji ciężko byłoby wydostać się z obszarów, gdzie wartość funkcji kosztu jest płaska. Prawdę mówiąc, podejrzewam, że winowajcą może być brak odpowiednich własności w sieci, ewentualnie za duży szum. Co się zatem stanie, gdy ograniczę zbiór treningowy do okresu po bańce z 2008 roku? Przy dokładnie takich samych parametrach sieci, niestety nie widać, żeby za dużo się zmieniło.
 
-Wydaje mi się, że mogę podawać sieci za mało informacji - choć z drugiej strony, przecież kilkakrotnie przechodzi ona przez zbiór treningowy, ponadto bardzo długo oscyluje wokół jednej wartości funkcji kosztu, a zmiana tempa uczenia na rząd wielkości wyższe też nie pomaga. Ponadto sieć pokazana przez Karpathy'ego w CS231 sprawnie uczy się spiralnego zbioru danych. No, ale w akcie desperacji - spróbuję.
+Wydaje mi się, że mogę podawać sieci za mało informacji - choć z drugiej strony, przecież kilkakrotnie przechodzi ona przez zbiór treningowy, ponadto bardzo długo oscyluje wokół jednej wartości funkcji kosztu, a zmiana tempa uczenia na rząd wielkości wyższe też nie pomaga. Ponadto sieć pokazana przez Karpathy'ego w CS231 sprawnie uczy się spiralnego zbioru danych. 
 
-Mam wrażenie, że jest pewna poprawa - jeśli spojrzeć na dokładność sieci, to okazuje się, że na zbiorze treningowym zdarza się jej zejść poniżej 0.6. Niestety nie dotyczy to testowego, a ponadto ani precyzja, ani czułość nie pozwalają na nadmierny entuzjazm. Tym smutnym wnioskiem zakończę więc rozważania na temat zwykłych sieci neuronowych.
+Spróbowałem dodać interakcje między zmiennymi. Mam wrażenie, że jest pewna poprawa - jeśli spojrzeć na funkcję kosztu sieci, to okazuje się, że na zbiorze treningowym zdarza się jej zejść poniżej 0.6. Niestety nie dotyczy to testowego, a ponadto ani precyzja, ani czułość nie pozwalają na nadmierny entuzjazm. Tym smutnym wnioskiem zakończę więc rozważania na temat zwykłych sieci neuronowych.
 
 <div class="imgcap">
 <img src='/assets/neural-net/typowy.png'>
