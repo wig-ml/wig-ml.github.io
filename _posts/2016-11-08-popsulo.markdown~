@@ -6,14 +6,14 @@ date:   2016-11-08
 categories: jekyll update
 ---
 
-Sugerując się prawem nagłówków Bertridge'a - rzecz jasna, nie. Nic się nie zepsuło, bo nieprzetworzone dane prawdopodobnie od początku do niczego się nie nadawały. Łatwo można to sprawdzić, wystarczy narysować odpowiednie wykresy gęstości prawdopodobieństwa.
+Sugerując się prawem nagłówków Bertridge'a - rzecz jasna, nie. Nic się nie zepsuło, bo nieprzetworzone dane prawdopodobnie od początku do niczego się nie nadawały. Przede wszystkim ciężko dopatrzeć się tutaj jakiejkolwiek separowalności - choć to nie jeszcze samo w sobie nic nie znaczy.
 
 <div class="imgcap">
 <img src="/assets/neural-net/densityplot.png">
 </div>
 
 
-Bez żadnej informacji wykresy nie wyglądają na niosące szczególnie wartościową informację. Co one zatem przedstawiają? Każdy z powyższych wykresów mianowicie reprezentuje jedną z dziesięciu zmiennych pozycyjnych naszych wektorów wejściowych ze zbioru treningowego ( po znormalizowaniu tak, aby mieć samą zmienność ceny, bez jej bezwzględnego poziomu ) - dla $S=1, L=10, R=1$, czyli kolejno dziesięć dni przed dniem obecny, dziewięć, osiem, i tak dalej... Czerwona krzywa to gęstość prawdopodobieństwa, że wektor posiadający wartość z danej przedziału ( bo wykres gęstości prawdopodobieństwa powstał z histogramu o 50 'koszykach' ) będzie w klasie spadkowej, niebieska - dodatniej. Sytuacji nie poprawia zignorowanie normalizacji - choć mogłoby się tak wydawać, bo ich średnie poziomy dla tych dwóch wyróżnionych klas są różne - co z tego, skoro mamy gigantyczne odchylenia standardowe, przez co w praktyce zbiory te zachodzą na siebie.
+Bez żadnej informacji wykresy nie wyglądają na niosące szczególnie wartościową informację. Co one zatem przedstawiają? Każdy z powyższych wykresów mianowicie reprezentuje jedną z dziesięciu zmiennych pozycyjnych naszych wektorów wejściowych ze zbioru treningowego ( po znormalizowaniu tak, aby mieć samą zmienność ceny, bez jej bezwzględnego poziomu ) - dla $S=1, L=10, R=1$, czyli kolejno dziesięć dni przed dniem obecny, dziewięć, osiem, i tak dalej... Czerwona krzywa to gęstość prawdopodobieństwa, że wektor posiadający wartość z danej przedziału ( bo wykres gęstości prawdopodobieństwa powstał z histogramu o 50 'koszykach' ) będzie w klasie spadkowej, niebieska - dodatniej. Sytuacji nie poprawia zignorowanie normalizacji - choć mogłoby się tak wydawać, bo ich średnie poziomy dla tych dwóch wyróżnionych klas są różne - co z tego, skoro mamy gigantyczne odchylenia standardowe, przez co w praktyce zbiory te zachodzą na siebie. ( średnie to $~110, 140$, a odchylenia standardowe osiągają ponad $600$. )
 
 Powyższe nie musi być jednakże przesłanką rozstrzygającą na temat beznadziejności zbioru treningowego - gdybym narysował podobne krzywe dla przytaczanego już zbioru spiralnego, okazałoby się, że są one analogicznie nie do odróżnienia, a jednak sieć się uczy i z powodzeniem klasyfikuje przynależność. Były one jednakże jednoznacznie separowalne. Tutaj, najwidoczniej, separowalności brak, a powyższe, jeśli nie rozstrzyga, to pomaga się do tej tezy przychylić. Można pobawić się parametrami, zmienić skok, długość, wreszcie zasięg, ale nie za wiele to zmienia. Potrzebujemy więcej informacji, informacji innego typu niż zwyczajne ruchy cen. Wolumen, równie łatwy do pozyskania jak ruchy cen, jest podobnie jak one bez niczego więcej bezużyteczny. Albo sieć sama zrobi z niej użytek, albo sami jej podpowiemy, jak ma to zrobić.
 
@@ -43,7 +43,12 @@ Czas na ręczne wkładanie metryk.
 <img src="/assets/neural-net/sharpe.png">
 </div>
 
-No, powkładałem. Mam wrażenie, że wystąpiła drobna poprawa - ale tak czy siak w dalszym ciągu posuwamy się bardzo drobymi krokami - trzeba będzie czegoś więcej. W akcie desperacji spróbuję wyciągnąć dane z komunikatów giełdowych na temat raportów - ale myślę, że może mi to trochę zająć. Na czym bowiem polega przeszkoda? Potrzebne mi są informacje na temat tego, kiedy dana spółka opublikowała raport  - nie możemy włączyć do wektorów informacji na temat raportów, który nie został jeszcze opublikowany! Zdobycie samych raportów było w zasadzie bezproblemowe, poza małymi problemami z Selenium (narzędzie do parsowania stron), ponieważ przechowywane były w formie znormalizowanej, tabelkowej. Informacje na temat daty publikacji każda firma publikuje po swojemu - jedna opublikuje w formacie liczbowym "dzien.miesiac.rok", inna "20 stycznia 2015", jeszcze inna opublikuje w innym terminie raporty skonsolidowane i jednostkowe. 
+No, powkładałem. Mam wrażenie, że wystąpiła drobna poprawa - ale tak czy siak w dalszym ciągu posuwamy się bardzo drobymi krokami - trzeba będzie czegoś więcej. Cofnę się o kilka kroków i spróbuję sprawdzić, co może stanowić zmienną separującą, ale najpierw ucieknę do modeli "state-of-art" w dziedzinie przewidywania szeregów czasowych - rekurencyjnych sieci neuronowych.
 
+
+
+W akcie desperacji spróbuję wyciągnąć dane z komunikatów giełdowych na temat raportów - ale myślę, że może mi to trochę zająć. Na czym bowiem polega przeszkoda? Potrzebne mi są informacje na temat tego, kiedy dana spółka opublikowała raport  - nie możemy włączyć do wektorów informacji na temat raportów, który nie został jeszcze opublikowany! Zdobycie samych raportów było w zasadzie bezproblemowe, poza małymi problemami z Selenium (narzędzie do parsowania stron), ponieważ przechowywane były w formie znormalizowanej, tabelkowej. Informacje na temat daty publikacji każda firma publikuje po swojemu - jedna opublikuje w formacie liczbowym "dzien.miesiac.rok", inna "20 stycznia 2015", jeszcze inna opublikuje w innym terminie raporty skonsolidowane i jednostkowe. Gdyby tego było, częstym zjawiskiem jest zmiana daty publikacji, wtedy pojawia się specjalny komunikat "zmiana terminu publikacji raportów" - ale tytuł oczywiście też jest zależny od podmiotu, który publikuje taką informację.
+
+W następnym odcinku - analiza eksploracyjna ruchów cen jak i 
 
 

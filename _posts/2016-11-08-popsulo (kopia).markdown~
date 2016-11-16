@@ -1,0 +1,14 @@
+---
+layout: post
+mathjax: true
+title:  "Eksploracja danych"
+date:   2016-11-14
+categories: jekyll update
+---
+
+
+Nadszedł czas na analizę eksploracyjną - wezmę najpopularniejsze wskaźniki ruchów cen i sprawdzę, czy są w stanie służyć jako jakikolwiek predyktor ruchów cen akcji.
+
+#SIŁA RELATYWNA
+
+Czym jest siła relatywna? Otóż jest to wskaźnik, który ma informać nas, jak się miała do siebie w danym okresie średnia wzrostów i spadków. Pozostając w przestrzeni "łańcuchów" różnego skoku i długości zdefiniowanych przy okazji n-gramów, niech $L$ będzie długością łańcucha, a $S$ skokiem. $C(t)$ będzie ceną w punkcie $t$ od początku. Wtedy $S_+ = \sum_{t \in A} ( C(t)-C(t-1) )/C(t-1) $, $S_- = \sum_{t \in B} ( C(t)-C(t-1) )/C(t-1)$, gdzie $A = \{t: C(t)-C(t-1) > 0\}, B = \{t: C(t)-C(t-1) < 0\}$
