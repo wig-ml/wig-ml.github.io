@@ -1,0 +1,96 @@
+---
+layout: post
+mathjax: true
+title:  "Testy wskaźników"
+date:   2016-11-16
+categories: jekyll update
+---
+
+W poprzednim odcinku zacząłem wizualizować różnice między różnymi wskaźnikami finansowymi, służacymi do przewidywania ruchów cen akcji na podstawie różnych informacji, takich jak ryzyko inwestycji w papier czy stosunek liczby dni "rosnących" do "spadających". Sama wizualizacja to jednak nie wszystko, bowiem intuicja ludzka znana jest z zawodności, więc złudnym byłoby podejmowanie decyzji inwestycyjnych na podstawie obrazków. Potrzebujemy ilościowego potwierdzenia, że dany wskaźnik nadaje się bądź nie nadaje się do zakupu akcji na jego podstawie.
+
+W przypadku akcji najlepszą metryką jest rzecz jasna zysk osiągany ze strategii. Trzeba jednak jakoś podjąć decyzję, jaką spółkę kupujemy, a jaką sprzedajemy - tak jak w przypadku n-gramów, do określenia, ruch w którą stronę jest bardziej prawdopodobny, posłużę się twierdzeniem Bayesa. Jeśli $X$ to cena akcji, a $(a,b)$ to koszyk histogramu, to:
+
+<div>
+$$P( \Delta X > 0 \mid X \in (a,b) ) = \frac{P( X \in (a,b) \mid \Delta X > 0 )P( \Delta X > 0)}{P( X \in (a,b) \mid \Delta X > 0 )P( \Delta X > 0) + P( X \in (a,b) \mid \Delta X < 0 )P( \Delta X < 0)}$$
+</div>
+
+Poza tym przetestuję też zwyczajne podejście - po prostu policzę prawdopodobieństwo wystąpienia rosnącej akcji w danym przedziale, ale wezmę górną granicę przedziału nieufności Wilsona, aby mieć jakąkolwiek szansę na to, że sygnał "kupuj" będzie mieć szansę powyżej 50\%
+
+<div>
+$$\frac{1}{1+z^2/n} ( p + z^2/2n \pm z \sqrt{p(1-p)/n + z^2/4n^2 }$$
+</div>
+
+Ponadto sprawdzę też, jak się sprawuje przewidywanie na podstawie zwykłego, intuicyjnego prawdopodobieństwa, to znaczy:
+
+<div>
+$$P( \Delta X_{testowe} > 0 \mid X \in (a,b) ) = \frac{ \sum_j \mathbb{1}( X_{treningowe_j} \in (a,b) \cap \Delta X_{treningowe_j} > 0 ) }{ \sum_j \mathbb{1}( X_{treningowe_j} \in (a,b) }$$
+</div>
+
+gdzie $\mathbb{1}( warunek )$ jest równe 1, jeśli warunek jest spełniony i zero w przeciwnym przypadku.
+
+
+Zacznę od RSI, łańcucha $S=2, L=18, R=1$.
+
+<div class="imgcap">
+<img src="/assets/test/RSI.png">
+</div>
+
+Od początku, co się tutaj znajduje? Otóż od góry do dołu, wierszami, ułożone są wykresy dla czterech wariantów liczenia prawdopodobieństwa: bayesowskie i klasyczne z Wilsonem, bayesowkie i klasyczne bez Wilsona. W pierwszej kolumnie jest wykres krzywej [ROC](https://en.wikipedia.org/wiki/Receiver_operating_characteristic), która na osi pionowej odkłada procent prawdziwych przedstawicieli klasy dodatniej, na poziomej zaś fałszywych - jest to pomarańczowa krzywa. Jak ona powstaje, wyjaśnię za chwilę.
+
+Czarna prosta, o równaniu $y=x$ zaś to punkt odniesienia, wskazuje nam, jak wyglądałaby ta krzywa dla losowego podejmowania decyzji. Optymalnie ( to jest dokładność przewidywań równa jedności, albo stu procentom ) dążymy do ROC równego górnej krawędzi rysunku, to jest prostej o równaniu $y=1$. Jak widać, samo RSI nie pozwala nam być szczególnie efektywnym w podejmowaniu decyzji. Aby nie polegać na złudnym oku, można wprowadzić metrykę pola pod krzywą ROC ( AUC: area under curve ). Nasza oś $X$ i $Y$ jest obcięta do przedziału $\[0,1\] \times \[0,1\]$, więc $AUC \in \[ 0, 1\]$. Dla RSI mamy $AUC = 0.53$, dla $y=x$ $AUC = 0.50$, więc nie ma się czym ekscytować.
+
+Druga kolumna to wykresy dokładności (czerwień), precyzji (ciemny błękit) i czułości (czerń). Zielona prosta to punkt odniesienia - $y=1/2$. Na osi pionowej znajdują się progi akceptacji klasy pozytywnej. Brzmi nieznajomo? Dla każdego wektora testowego po przekształceniu funkcją tworzącą zeń wskaźnik RSI otrzymujemy pewne prawdopodobieństwo, że należy on do klasy wektoróœ wzrostowych. Na pierwszy rzut oka wydawałoby się, że należy zakwalifikować tak wszystkie wektory, dla których $P( RSI \in (a,b) ) > 0.5$. Okazuje się tymczasem, że lepsze rezultaty można osiągnąć, dobierając ten próg inaczej. W rezultacie testujemy dokładność, precyzję i czułość dla całego zbioru progów ( nie więcej niż stu, aby obliczenia nie trwały za długo ) od zera do jedynki. Jak widać, w zależności od tego, którym prawdopodobieństwem się posługujemy, możemy otrzymać lepsze bądź gorsze rezultaty, a optymalny próg znajduje się w okolicach $0.3 - 0.4$. Mamy wtedy zarówno dokładność nieco wyższą niż połowa oraz najwyższe wartości zarówno precyzji, jak i czułości. Pamiętając, że zależy nam na wysokich wartościach obydwu, można wprowadzić $F = 2\frac{P\cdot R}{P+R}$. Dla $P=R=0.4$ mamy $F=.4$, nic w tym dziwnego, bo to zwykła średnia harmoniczna.
+
+Teraz można powrócić do ROC. Dobierając po kolei progi klasyfikacji pozytywnej, od zera do jedynki, sprawdzamy, ile otrzymujemy w ten sposób poprawnych klasyfikacji pozytywnych, a ile fałszywych. Jeśli dla pewnego progu $p$, $TPR=0.9$, a $FPR=0.1$, (true positive rate, false positive rate) to umieszczamy na wykresie punkt o współrzędnch $(0.1, 0.9)$. Następnie przechodzimy do kolejnego progu, i tak aż do momentu, w którym dojdziemy do $p=1$.
+
+Dla każdego z czterech różnych prawdopodobieństw krzywe mają podobne kształty, umieszczone są tylko w różnych miejscach, skąd to wynika? Można spojrzeć na prawdopodobieństwa w funkcji wskaźnika RSI:
+
+<div class="imgcap">
+<img src="/assets/test/RSIprobs.png">
+</div>
+
+Okazuje się, że kształt poszczególnych krzywych (choć ze względu na dyskretny charakter takich wykresów lepsze byłoby chyba słowo łamanych) jest bardzo podobny, są one tylko przesunięte w górę bądź w dół, wilsonowski Bayes przecina się raz z wykresem podejścia najzwyklejszego, ale mimo tego ich progresja dla coraz większych RSI jest wciąż podobna. W dodatku ich położenie w centralnym odcinku, na osi $0-1$ odpowiada przesunięciu na osi poziomej na wykresach metryk. 
+
+Dla wskaźnika Sharpe'a sytuacja nastraja optymizmem jeszcze mniej.
+
+<div class="imgcap">
+<img src="/assets/test/sharpe.png">
+</div>
+
+$AUC = 0.504$, czyli równie dobrze możemy próbować zgadywać kierunek ruchu akcji. Widać zresztą, że w momencie, gdy dokładność wspina się wysoko, czułość dramatycznie pikuje. 
+
+Z zestawu średnich dla tego łańcucha najlepiej sprawowała się zwykła średnia ostatnich cen w stosunku do ceny z dnia, w którym podejmujemy decyzję. 
+
+<div class="imgcap">
+<img src="/assets/test/simavg.png">
+</div>
+
+$AUC = 0.52$, co wciąż nie nastraja szczególnie optymistycznie.
+
+Wszystkie powyższe wskaźniki dotyczyły jednego szczególnego łańcucha, fajnie by było wiedzieć, jakie są ogólne własności każdej z tych poszczególnych metod. Pokazywanie tu analogicznych wykresów dla każdego łańcucha mija się chyba z celem, zatem poniżej znajduje się tabelka ze średnimi $AUC$ - która jest chyba drugą najlepszą metryką skuteczności - dla metod zastosowanych dla wszystkich wygenerowanych łańcuchów. 
+
+Legenda: BW - Bayes z Wilsonem, KW - klasyczna z Wilsonem
+
+|                         | BW | KW | B | K |
+|:-----------------------:|:------------:|:---------------:|:--------------:|:--------------------:|
+|           RSI           |     0.505    |      0.505      |      0.509     |         0.509        |
+|          sharpe         |     0.504    |      0.504      |      0.508     |         0.508        |
+|         treynor         |     0.518    |      0.518      |      0.518     |         0.518        |
+|      sharpe ważony      |     0.509    |      0.509      |      0.51      |         0.51         |
+| ważona różnicą wolumenu |     0.509    |      0.509      |      0.511     |         0.511        |
+|     ważona wolumenem    |     0.501    |      0.501      |      0.502     |         0.502        |
+|   średnia cen do ceny   |     0.523    |      0.523      |      0.524     |         0.524        |
+|    wykładnicza ważona   |     0.499    |      0.499      |      0.499     |         0.499        |
+
+
+Jak widać, najlepiej spisała się średnia ostatnich cen w stosunku do obecnej ceny. Generując wykresy, pominąłem dwa wskaźniki - Treynora i Sharpe'a ważonego wykładniczo. Zrobiłem tak, ponieważ w poprzednim poście na temat wstępnej eksploracji danych wstępna analiza nie wykazała żadnego potencjału na separowalność, tymczasem wskaźnik Treynora okazał się być drugim najlepszym pod względem $AUC$.
+
+
+Co z korelacją? Analogicznie jak przy $AUC$, uśredniłem korelacje z badań dla wszystkich łańcuchów.
+
+<div class="imgcap">
+<img src="/assets/test/corrs.png">
+</div>
+
+Niestety musiałem porzucić tutaj Treynora i średnią ważoną wykładniczo, ponieważ z przyczyn, których jeszcze nie odkryłem, otrzymywałem wartości NaN (not a number, sugerujący pojawienie się gdzieś dzielenia przez zero albo przeciążenia zmiennej). Jak czytać ten obrazek? Najjaśniejsze kwadraty to korelacja najsilniejsza (w którąkolwiek ze stron), najciemniejsze - bliższe zera.
+

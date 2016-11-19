@@ -13,3 +13,4 @@ Nie pozuję na znawcę, mentora, mistrza metod uczenia maszynowego w finansach -
 
 
 PS. Jeśli śledzisz Andreja Karpathy'ego, to zapewne zauważyłeś, że styl graficzny bloga jest zerżnięty bezpośrednio od niego - tak, podobieństwo jest nieprzypadkowe. Nie chciało mi się grzebać przy CSS :)
+

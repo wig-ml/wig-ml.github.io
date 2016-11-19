@@ -44,8 +44,7 @@ Druga metoda polega na sprawdzeniu, jak wzrost każdej spółki ma się do najle
 <img src="/assets/exp/ROC.png">
 </div>
 
-Nic imponującego - wręcz przeciwnie. Z drugiej strony, byłem przekonany, że metoda powinna przynieść satysfakcjonujące rezultaty. Intuicyjnie, jeśli spółka była lepsza od pozostałych przez ostatni miesiąc, to rzesza inwestorów powinna ten wzrost zauważyć i zainwestować w papier - tak właśnie powstają bańki. Czyżbym coś zepsuł? // tutaj link do kodu na github
-
+Nic imponującego. Z drugiej strony, byłem przekonany, że metoda powinna przynieść satysfakcjonujące rezultaty. Intuicyjnie, jeśli spółka była lepsza od pozostałych przez ostatni miesiąc, to rzesza inwestorów powinna ten wzrost zauważyć i zainwestować w papier - tak właśnie powstają bańki. Czyżbym coś zepsuł? 
 
 ## WSKAŹNIK SHARPE'A
 
@@ -58,6 +57,19 @@ gdzie $R_p$ to średni zwrot z inwestycji w papier w zadanym okresie, $R_b$ to �
 
 <div class="imgcap">
 <img src="/assets/exp/sharpes.png">
+</div>
+
+Ponadto można zastąpić odchylenie standardowe współczynnikiem beta, czyli:
+<div>
+$$\beta = \frac{cov_{p,b}}{\sigma_{p}}$$
+</div>
+
+gdzie $cov_{x,y}$ to kowariancja zmiennych $x$ i $y$, czyli $1/N \sum_i^N (x_i - 1/N \sum_j^N x_j ) (y_i - 1/N \sum_j^N y_j )$
+
+Nazywamy to wskaźnikiem Treynora.
+
+<div class="imgcap">
+<img src="/assets/exp/treynor.png">
 </div>
 
 Funkcja ```transform_to_sharpe```
@@ -106,4 +118,4 @@ Nie zamieszczałem wszystkich wykresów - wszystkim i tak nikt by się nie przyj
 
 Podsumowując, myślę, że istnieje nadzieja na wykorzystanie tych wskaźników jako własności ( zmiennych objaśniajacych ) ostatecznego modelu. Widać nieznaczną separowalność, a przy dobrych wiatrach może się okazać, że wskaźniki są ze sobą słabo skorelowane. Będziemy wtedy wiedzieć, że zyskujemy nową informację włączając wskaźnik do modelu, zamiast powielania już istniejącej. 
 
-Przed nami jednak testy, dobrania najbardziej odpowiadających konkretnym wskaźnikom łańcuchów. W następnym odcinku postaram się skorzystać z twierdzenia Bayesa celem znalezienia strategii - podobnie, jak w odcinku o n-gramach. Poza tym spróbuję sprawdzić i włączyć do modelu więcej wskaźników, a następnie raz jeszcze przetrenuję sieć neuronową. Dalsze plany zakładają podzielenie ruchów cen akcji na trendy rosnące i malejące i zastosowanie metod analizy przeżycia do zidentyfikowania czasu pozostałego do odwrócenia trendu.
+Przed nami jednak testy, dobranie najbardziej odpowiadających konkretnym wskaźnikom łańcuchów. W następnym odcinku postaram się skorzystać z twierdzenia Bayesa celem znalezienia strategii - podobnie, jak w odcinku o n-gramach. Poza tym spróbuję sprawdzić i włączyć do modelu więcej wskaźników, a następnie raz jeszcze przetrenuję sieć neuronową. Dalsze plany zakładają podzielenie ruchów cen akcji na trendy rosnące i malejące i zastosowanie metod analizy przeżycia do zidentyfikowania czasu pozostałego do odwrócenia trendu.

@@ -44,8 +44,7 @@ Druga metoda polega na sprawdzeniu, jak wzrost każdej spółki ma się do najle
 <img src="/assets/exp/ROC.png">
 </div>
 
-Nic imponującego - wręcz przeciwnie. Z drugiej strony, byłem przekonany, że metoda powinna przynieść satysfakcjonujące rezultaty. Intuicyjnie, jeśli spółka była lepsza od pozostałych przez ostatni miesiąc, to rzesza inwestorów powinna ten wzrost zauważyć i zainwestować w papier - tak właśnie powstają bańki. Czyżbym coś zepsuł? // tutaj link do kodu na github
-
+Nic imponującego. Z drugiej strony, byłem przekonany, że metoda powinna przynieść satysfakcjonujące rezultaty. Intuicyjnie, jeśli spółka była lepsza od pozostałych przez ostatni miesiąc, to rzesza inwestorów powinna ten wzrost zauważyć i zainwestować w papier - tak właśnie powstają bańki. Czyżbym coś zepsuł? 
 
 ## WSKAŹNIK SHARPE'A
 
@@ -60,9 +59,22 @@ gdzie $R_p$ to średni zwrot z inwestycji w papier w zadanym okresie, $R_b$ to �
 <img src="/assets/exp/sharpes.png">
 </div>
 
+Ponadto można zastąpić odchylenie standardowe współczynnikiem beta, czyli:
+<div>
+$$\beta = \frac{cov_{p,b}}{\sigma_{p}}$$
+</div>
+
+gdzie $cov_{x,y}$ to kowariancja zmiennych $x$ i $y$, czyli $1/N \sum_i^N (x_i - 1/N \sum_j^N x_j ) (y_i - 1/N \sum_j^N y_j )$
+
+Nazywamy to wskaźnikiem Treynora.
+
+<div class="imgcap">
+<img src="/assets/exp/treynor.png">
+</div>
+
 Funkcja ```transform_to_sharpe```
 
-Powyżej wykres prawdopodobieństw warunkowych dla średnich zwrotów w danym łańcuchu - widzimy, że występuje między nimi pewna, choć nieznaczna różnica. Nasuwa się hipoteza, żeby sprawdzić, czy wskaźnik Sharpe'a razem z pierwszą odmianą RSI będzie wskazywał nam jakąś separowalność. Tymczasem sprawdźmy wersję dla średniej ważonej o kroku 0.8:
+Powyżej wykresy prawdopodobieństw warunkowych dla średnich zwrotów w danym łańcuchu - dla Sharpe'a mamy pewną separowalność, Treynor wygląda już trochę gorzej. Nasuwa się hipoteza, żeby sprawdzić, czy wskaźnik Sharpe'a razem z pierwszą odmianą RSI będzie wskazywał nam jakąś separowalność. Tymczasem sprawdźmy wersję dla średniej ważonej o kroku 0.8:
 
 <div class="imgcap">
 <img src="/assets/exp/sharpesemas.png">

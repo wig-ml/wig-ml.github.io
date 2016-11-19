@@ -11,3 +11,6 @@ Tutaj znajdziesz listę linków do postów, w których opisywałem swoje przygod
 
 1. [N-gramy](/jekyll/update/2016/11/01/ngrams/)
 2. [Sieć neuronowa](/jekyll/update/2016/11/06/neuronowa/)
+
+Tutaj jest repozytorium z plikami Python:
+[Git](https://github.com/wig-ml/blog_source)
