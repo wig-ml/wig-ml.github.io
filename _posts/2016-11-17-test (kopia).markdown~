@@ -1,0 +1,21 @@
+---
+layout: post
+mathjax: true
+title:  "Strategie"
+date:   2016-11-28
+categories: jekyll update
+---
+
+Po bardzo wstępnej analizie eksploracyjnej pora na zabranie się za metrykę najwazniejszą - to jest, pieniądze. Na początek rozważę strategię naiwną, to jest zmierzę, jakie są średnie zyski z kupowania i sprzedawania, gdy strategia nam to podpowiada. Pominę rzecz jasna koszty transakcyjne, pozwalając sobie na wzięcie ich pod uwagę w późniejszym etapie. Co więc otrzymujemy?
+
+
+
+Idziemy dalej. Tym razem zmierzę zyski ze strategii, którą z dużym marginesem błędu można nazwać rzeczywistą. Otóż dla pewnej metody, załóżmy średniej ceny przez aktualną cenę wyznaczę pewną liczbę $N=30$ najlepiej sprawujących się progów kupna $T$ (tj. tych o najwyższym F-ratio). Zapamiętuję też, rzecz jasna dystrybucję prawdopodobieństwa dla danego wskaźnika. Teraz dla każdego $t \in T$ postępuję następująco.
+
+Rozpoczynam wędrówkę od punktu startowego, w tym wypadku początku roku 2016, pierwszego dnia handlu w styczniu. Zbieram wszystkie ceny spółek będących tego dnia w obrocie i wybieram spośród nich 5 o największym i najmniejszym prawdopodobieństwie wzrostu. Ci wstępni kandydaci muszą jeszcze przejść następny etap selekcji - sprawdzenie, czy prawdopodobieństwo wzrostu/spadku jest powyżej/poniżej wybranego progu $t$. Spółki kwalifikujące się lądują w dwóch słownikach, jednym dla kupna, drugim dla sprzedaży. Najpierw, rzecz jasna, dla zwolnienia środków, odbywa się sprzedaż. Do kasy trafia równowartość akcji w danym momencie pomniejszona o prowizję maklerską. Następnie dla każdej spółki, której akcje przeszły selekcję, sprawdzamy, ile sztuk możemy zakupić. Posiadaną gotówkę mnożymy przez $(1-f)$ gdzie f to prowizja maklerska, a następnie dzielimy przez cenę akcji. Biorąc podłogę (największą liczbę całkowitą mniejszą od tej wartości), możemy się dowiedzieć, ile akcji w ten sposób jesteśmy w stanie zakupić. Następnie dokonujemy transakcji - aby sobie nieco uprościć życie, przyjąłem, że jeśli nie jesteśmy w stanie pokryć prowizji maklerskiej, to zaciągamy mikropożyczkę. Po wszystkim przechodzę do następnego punktu czasowego - jeśli mój łańcuch miał zasięg $R=1$, to jest to następny dzień. Jeśli $R=7$, to tydzień. Jak zatem radzę sobie z mnóstwem pominiętych akcji? Otóż, gdy dotrę już do końca cen akcji, zaczynam od początku, ale z przesunięciem o jeden dzień do przodu. 
+
+Pełny algorytm w pseudokodzie wygląda tak:
+```python
+
+
+

@@ -92,7 +92,7 @@ Co z korelacją? Analogicznie jak przy $AUC$, uśredniłem korelacje z badań dl
 <img src="/assets/test/corrs.png">
 </div>
 
-Niestety musiałem porzucić tutaj Treynora i średnią ważoną wykładniczo, ponieważ z przyczyn, których jeszcze nie odkryłem, otrzymywałem wartości NaN (not a number, sugerujący pojawienie się gdzieś dzielenia przez zero albo przeciążenia zmiennej). Jak czytać ten obrazek? Najjaśniejsze kwadraty to korelacja najsilniejsza (w którąkolwiek ze stron), najciemniejsze - bliższe zera.
+Jak czytać ten obrazek? Najjaśniejsze kwadraty to korelacja najsilniejsza (w którąkolwiek ze stron), najciemniejsze - bliższe zera. Widać stosunkowo słabą korelację Sharpe'a z resztą wskaźników i silną korelację grupy średnich ze sobą. Warto też zwrócić uwagę na brak korelacji wskaźnika Treynora z czymkolwiek innym - może on wnosić jakąś cenną informację.
 
 W nastepnym odcinku omówię rezultaty strategii inwestowania przy każdym z tych wskaźników.
 
